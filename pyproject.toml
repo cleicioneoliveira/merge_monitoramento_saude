@@ -1,0 +1,19 @@
+[project]
+name = "merge-monitoramento-saude"
+version = "0.1.0"
+description = "Merge corrected monitoring data with reconstructed health-status timelines"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "pandas",
+    "pyarrow",
+    "openpyxl",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["merge_monitoramento_saude*"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
