@@ -42,11 +42,16 @@ def _prepare_saude(df: pd.DataFrame) -> pd.DataFrame:
     return prepared
 
 
-def _order_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Move recommended final columns to the front while preserving extras."""
-    preferred = [column for column in FINAL_RECOMMENDED_COLUMNS if column in df.columns]
-    extras = [column for column in df.columns if column not in preferred]
-    return df.loc[:, preferred + extras]
+def _select_final_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Return only the final canonical dataset columns, in the official order."""
+    missing = [column for column in FINAL_RECOMMENDED_COLUMNS if column not in df.columns]
+    if missing:
+        raise ValueError(
+            "Colunas finais obrigatórias ausentes após o merge: "
+            f"{missing}. Colunas disponíveis: {list(df.columns)}"
+        )
+
+    return df.loc[:, list(FINAL_RECOMMENDED_COLUMNS)].copy()
 
 
 def merge_monitoramento_saude(
@@ -69,7 +74,7 @@ def merge_monitoramento_saude(
     Returns
     -------
     pandas.DataFrame
-        Integrated dataset with canonical columns.
+        Integrated dataset restricted to the final canonical columns.
     """
     monitoring_df = _prepare_monitoramento(monitoramento)
     health_df = _prepare_saude(saude)
@@ -84,8 +89,9 @@ def merge_monitoramento_saude(
         suffixes=("", "_saude"),
     )
 
-    merged = _order_columns(merged)
+    merged = _select_final_columns(merged)
     logger.info("Merged rows: %s", f"{len(merged):,}")
+    logger.info("Final columns: %s", list(merged.columns))
 
     return merged
 
