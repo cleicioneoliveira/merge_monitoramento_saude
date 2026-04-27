@@ -13,7 +13,7 @@ merge_monitoramento_saude
 carga-termica-bovinos
 ```
 
-O objetivo é gerar um dataset final padronizado, com nomes de colunas estáveis, para ser consumido pelo pipeline de carga térmica.
+O objetivo é gerar um dataset final enxuto, padronizado e estável para ser consumido pelo pipeline de carga térmica.
 
 ---
 
@@ -34,9 +34,17 @@ brinco
 data_hora
 ```
 
-Colunas ambientais recomendadas:
+Colunas comportamentais e ambientais esperadas para a saída final:
 
 ```text
+ruminacao_hora
+atividade_hora
+ocio_hora
+ofegacao_hora
+ruminacao_acumulado
+atividade_acumulado
+ocio_acumulado
+ofegacao_acumulado
 temperatura_compost_1
 humidade_compost_1
 thi_compost1
@@ -86,6 +94,32 @@ dataset/processado/monitoramento_saude_unificado.csv
 ```
 
 O arquivo `.parquet` é o recomendado para o `carga-termica-bovinos`.
+
+A saída é estritamente limitada a estas colunas, nesta ordem:
+
+```text
+brinco
+data_hora
+status_saude
+ruminacao_hora
+atividade_hora
+ocio_hora
+ofegacao_hora
+ruminacao_acumulado
+atividade_acumulado
+ocio_acumulado
+ofegacao_acumulado
+temperatura_compost_1
+humidade_compost_1
+thi_compost1
+temperatura_compost_2
+humidade_compost_2
+thi_compost2
+```
+
+Colunas auxiliares da timeline de saúde, como `episode_number`, `proxima_mudanca`, `status_inicio_vigencia` e similares, não são exportadas no dataset final.
+
+Se alguma coluna final obrigatória estiver ausente após o merge, o pipeline interrompe com erro claro.
 
 ---
 
@@ -158,24 +192,6 @@ status_vigente -> status_saude
 thi_compost_1  -> thi_compost1
 umidade_compost_1 -> humidade_compost_1
 ```
-
----
-
-## Contrato mínimo do dataset final
-
-O dataset final deve conter pelo menos:
-
-```text
-brinco
-data_hora
-status_saude
-ofegacao_hora
-temperatura_compost_1
-humidade_compost_1
-thi_compost1
-```
-
-Colunas adicionais do monitoramento e da timeline de saúde são preservadas.
 
 ---
 
