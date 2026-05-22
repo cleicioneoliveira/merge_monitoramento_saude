@@ -27,6 +27,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Merge strategy. Default preserves all monitoring rows.",
     )
     parser.add_argument(
+        "--default-status",
+        default="Normal",
+        help="Status assigned when no reconstructed health status is found after merge. Default: Normal.",
+    )
+    parser.add_argument(
+        "--keep-missing-status",
+        action="store_true",
+        help="Keep missing health status as NA instead of filling with --default-status.",
+    )
+    parser.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
@@ -56,6 +66,8 @@ def main() -> int:
         output_dir=args.output_dir,
         output_basename=args.output_basename,
         how=args.how,
+        fill_missing_status=not args.keep_missing_status,
+        default_status=args.default_status,
     )
 
     logging.info("Parquet output: %s", outputs["parquet"])

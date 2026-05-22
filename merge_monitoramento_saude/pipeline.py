@@ -42,6 +42,35 @@ def _prepare_saude(df: pd.DataFrame) -> pd.DataFrame:
     return prepared
 
 
+def _fill_missing_health_status(df: pd.DataFrame, default_status: str = "Normal") -> pd.DataFrame:
+    """Fill health-status gaps left after the monitoring-health merge.
+
+    A missing status after the left merge means that the animal-hour record did
+    not find a corresponding reconstructed health-status record. In this
+    project, the basal state for animals without an active or reconstructed
+    health event is considered ``Normal``.
+    """
+    filled = df.copy()
+    if HealthColumn.STATUS_SAUDE not in filled.columns:
+        return filled
+
+    missing = filled[HealthColumn.STATUS_SAUDE].isna()
+    n_missing = int(missing.sum())
+    if n_missing:
+        n_animals = filled.loc[missing, KeyColumn.ANIMAL_ID].nunique()
+        logger.info(
+            "Health status missing after merge: filling %s rows from %s animals as %s.",
+            f"{n_missing:,}",
+            f"{n_animals:,}",
+            default_status,
+        )
+        filled.loc[missing, HealthColumn.STATUS_SAUDE] = default_status
+    else:
+        logger.info("No missing health status after merge.")
+
+    return filled
+
+
 def _select_final_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Return only the final canonical dataset columns, in the official order."""
     missing = [column for column in FINAL_RECOMMENDED_COLUMNS if column not in df.columns]
@@ -59,6 +88,8 @@ def merge_monitoramento_saude(
     saude: pd.DataFrame,
     *,
     how: str = "left",
+    fill_missing_status: bool = True,
+    default_status: str = "Normal",
 ) -> pd.DataFrame:
     """Merge corrected monitoring data with reconstructed health timeline.
 
@@ -70,6 +101,12 @@ def merge_monitoramento_saude(
         Reconstructed health-status timeline.
     how : str, optional
         Merge strategy. Defaults to ``left`` to preserve all monitoring rows.
+    fill_missing_status : bool, optional
+        If True, missing health status after the merge is filled with
+        ``default_status``.
+    default_status : str, optional
+        Basal status assigned to animal-hour records without a reconstructed
+        health event. Defaults to ``Normal``.
 
     Returns
     -------
@@ -89,6 +126,9 @@ def merge_monitoramento_saude(
         suffixes=("", "_saude"),
     )
 
+    if fill_missing_status:
+        merged = _fill_missing_health_status(merged, default_status=default_status)
+
     merged = _select_final_columns(merged)
     logger.info("Merged rows: %s", f"{len(merged):,}")
     logger.info("Final columns: %s", list(merged.columns))
@@ -103,9 +143,17 @@ def run(
     *,
     output_basename: str = "monitoramento_saude_unificado",
     how: str = "left",
+    fill_missing_status: bool = True,
+    default_status: str = "Normal",
 ) -> dict[str, Path]:
     """Run the complete merge workflow from files to outputs."""
     monitoramento = read_table(monitoramento_path)
     saude = read_table(saude_path)
-    merged = merge_monitoramento_saude(monitoramento, saude, how=how)
+    merged = merge_monitoramento_saude(
+        monitoramento,
+        saude,
+        how=how,
+        fill_missing_status=fill_missing_status,
+        default_status=default_status,
+    )
     return write_outputs(merged, output_dir, output_basename)
